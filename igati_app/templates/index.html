@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment System Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
+        .section { margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .section h3 { color: #333; margin-top: 0; }
+        input, select, button { padding: 10px; margin: 5px; border: 1px solid #ddd; border-radius: 3px; }
+        button { background: #007cba; color: white; cursor: pointer; }
+        button:hover { background: #005a87; }
+        .result { margin: 10px 0; padding: 10px; background: #f0f8ff; border-radius: 3px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .pending { background: #fff3cd; color: #856404; }
+        .prompt { background: #e7f3ff; border: 2px solid #007cba; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .step { margin: 10px 0; padding: 10px; background: #f8f9fa; border-left: 4px solid #007cba; }
+        .hidden { display: none; }
+        .pin-input { font-size: 18px; text-align: center; width: 60px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>IGATI Payment System</h1>
+        <p><em>Empowering changemakers through a collaborative ecosystem</em></p>
+        
+
+
+        <!-- Paystack Payment Gateway -->
+        <div class="section">
+            <h3>IGATI Paystack Payment Gateway</h3>
+            <p>Secure payments for IGATI services - M-Pesa, Airtel Money, Credit Cards, and Bank Transfers</p>
+            
+            <div>
+                <input type="email" id="paystack_email" placeholder="Your Email" value="changemaker@igati.co.ke">
+                <input type="number" id="paystack_amount" placeholder="Amount (KES)" value="2500">
+                <button onclick="initializePaystack()">Pay IGATI via Paystack</button>
+            </div>
+            
+            <div id="paystack_result" class="result"></div>
+            
+            <div id="paystack_verification" class="hidden">
+                <div class="prompt">
+                    <strong>Payment Processing</strong><br>
+                    <p>You will be redirected to Paystack to complete your payment.</p>
+                    <div class="step">Choose M-Pesa, Airtel Money, or Card</div>
+                    <div class="step">Enter your payment details</div>
+                    <div class="step">Complete payment verification</div>
+                    <br>
+                    <button onclick="simulatePaystackPayment()">Continue to Paystack (Simulate)</button>
+                    <button onclick="cancelPaystack()">Cancel</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Direct Payment Methods -->
+        <div class="section">
+            <h3>Direct Payment Methods (Legacy)</h3>
+            
+            <!-- M-Pesa -->
+            <div style="margin: 15px 0;">
+                <h4>M-Pesa Payment</h4>
+                <div id="mpesa_step1">
+                    <input type="number" id="mpesa_amount" placeholder="Amount (KES)" value="500">
+                    <input type="text" id="mpesa_phone" placeholder="Phone Number (+254...)" value="+254712345678">
+                    <button onclick="initiateMpesa()">Pay with M-Pesa</button>
+                </div>
+                
+                <div id="mpesa_step2" class="hidden">
+                    <div class="prompt">
+                        <strong>M-Pesa STK Push Sent!</strong><br>
+                        Check your phone for the M-Pesa prompt and enter your PIN.
+                        <div class="step">Step 1: Check your phone for M-Pesa notification</div>
+                        <div class="step">Step 2: Enter your M-Pesa PIN on your phone</div>
+                        <div class="step">Step 3: Confirm the payment</div>
+                    </div>
+                    <button onclick="simulateMpesaPin()">Simulate PIN Entry (For Testing)</button>
+                    <button onclick="cancelMpesa()">Cancel</button>
+                </div>
+                
+                <div id="mpesa_step3" class="hidden">
+                    <div class="prompt">
+                        <strong>Enter M-Pesa PIN</strong><br>
+                        <input type="password" id="mpesa_pin" class="pin-input" maxlength="4" placeholder="****">
+                        <button onclick="confirmMpesaPin()">Confirm PIN</button>
+                    </div>
+                </div>
+                
+                <div id="mpesa_result" class="result"></div>
+            </div>
+
+            <!-- Credit Card -->
+            <div style="margin: 15px 0;">
+                <h4>Credit Card Payment</h4>
+                <div id="card_step1">
+                    <input type="number" id="card_amount" placeholder="Amount (KES)" value="750">
+                    <input type="text" id="card_number" placeholder="Card Number (16 digits)" value="1234567890123456">
+                    <input type="text" id="cvv" placeholder="CVV (3 digits)" value="123">
+                    <input type="text" id="card_name" placeholder="Cardholder Name" value="John Doe">
+                    <button onclick="initiateCard()">Pay with Credit Card</button>
+                </div>
+                
+                <div id="card_step2" class="hidden">
+                    <div class="prompt">
+                        <strong>3D Secure Verification</strong><br>
+                        Please enter the OTP sent to your registered mobile number.
+                        <div class="step">OTP sent to: +254***5678</div>
+                        <input type="text" id="card_otp" class="pin-input" maxlength="6" placeholder="Enter OTP">
+                        <button onclick="confirmCardOTP()">Verify OTP</button>
+                        <button onclick="cancelCard()">Cancel</button>
+                    </div>
+                </div>
+                
+                <div id="card_result" class="result"></div>
+            </div>
+
+            <!-- PayPal -->
+            <div style="margin: 15px 0;">
+                <h4>PayPal Payment</h4>
+                <div id="paypal_step1">
+                    <input type="number" id="paypal_amount" placeholder="Amount (KES)" value="300">
+                    <input type="email" id="paypal_email" placeholder="PayPal Email" value="test@example.com">
+                    <button onclick="initiatePayPal()">Pay with PayPal</button>
+                </div>
+                
+                <div id="paypal_step2" class="hidden">
+                    <div class="prompt">
+                        <strong>PayPal Login Required</strong><br>
+                        You will be redirected to PayPal to complete your payment.
+                        <div class="step">Step 1: Login to your PayPal account</div>
+                        <div class="step">Step 2: Review payment details</div>
+                        <div class="step">Step 3: Confirm payment</div>
+                        <button onclick="simulatePayPalLogin()">Continue to PayPal (Simulate)</button>
+                        <button onclick="cancelPayPal()">Cancel</button>
+                    </div>
+                </div>
+                
+                <div id="paypal_result" class="result"></div>
+            </div>
+
+            <!-- Bank Transfer -->
+            <div style="margin: 15px 0;">
+                <h4>Bank Transfer</h4>
+                <div id="bank_step1">
+                    <input type="number" id="bank_amount" placeholder="Amount (KES)" value="1200">
+                    <input type="text" id="bank_account" placeholder="Your Account Number" value="9876543210">
+                    <select id="bank_name">
+                        <option value="KCB">KCB Bank</option>
+                        <option value="Equity">Equity Bank</option>
+                        <option value="Cooperative">Co-operative Bank</option>
+                        <option value="NCBA">NCBA Bank</option>
+                    </select>
+                    <button onclick="initiateBank()">Initiate Bank Transfer</button>
+                </div>
+                
+                <div id="bank_step2" class="hidden">
+                    <div class="prompt">
+                        <strong>Bank Transfer Initiated</strong><br>
+                        Your bank transfer is being processed. This may take 1-3 business days.
+                        <div class="step">Transfer Details:</div>
+                        <div class="step">To: Marketplace Account</div>
+                        <div class="step">Amount: KES <span id="bank_transfer_amount"></span></div>
+                        <div class="step">Reference: <span id="bank_reference"></span></div>
+                        <button onclick="confirmBankTransfer()">Confirm Transfer</button>
+                    </div>
+                </div>
+                
+                <div id="bank_result" class="result"></div>
+            </div>
+        </div>
+        
+        <!-- Transaction History -->
+        <div class="section">
+            <h3>Transaction History</h3>
+            <button onclick="loadTransactionHistory()">Load All Transactions</button>
+            <button onclick="clearHistory()">Clear Display</button>
+            <div id="transaction_history" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // M-Pesa Functions
+        function initiateMpesa() {
+            document.getElementById('mpesa_step1').classList.add('hidden');
+            document.getElementById('mpesa_step2').classList.remove('hidden');
+            
+            // Simulate STK push delay
+            setTimeout(() => {
+                document.getElementById('mpesa_result').innerHTML = 
+                    '<div class="pending">STK Push sent to your phone. Please check your device...</div>';
+            }, 1000);
+        }
+        
+        function simulateMpesaPin() {
+            document.getElementById('mpesa_step2').classList.add('hidden');
+            document.getElementById('mpesa_step3').classList.remove('hidden');
+        }
+        
+        function confirmMpesaPin() {
+            const pin = document.getElementById('mpesa_pin').value;
+            if (pin.length !== 4) {
+                alert('Please enter a 4-digit PIN');
+                return;
+            }
+            
+            const data = {
+                method: 'mpesa',
+                amount: document.getElementById('mpesa_amount').value,
+                phone: document.getElementById('mpesa_phone').value,
+                pin: pin
+            };
+            
+            processDirectPayment(data, 'mpesa_result');
+            resetMpesa();
+        }
+        
+        function cancelMpesa() {
+            resetMpesa();
+            document.getElementById('mpesa_result').innerHTML = 
+                '<div class="error">M-Pesa payment cancelled</div>';
+        }
+        
+        function resetMpesa() {
+            document.getElementById('mpesa_step1').classList.remove('hidden');
+            document.getElementById('mpesa_step2').classList.add('hidden');
+            document.getElementById('mpesa_step3').classList.add('hidden');
+            document.getElementById('mpesa_pin').value = '';
+        }
+
+        // Credit Card Functions
+        function initiateCard() {
+            document.getElementById('card_step1').classList.add('hidden');
+            document.getElementById('card_step2').classList.remove('hidden');
+            
+            setTimeout(() => {
+                document.getElementById('card_result').innerHTML = 
+                    '<div class="pending">OTP sent to your registered mobile number...</div>';
+            }, 1000);
+        }
+        
+        function confirmCardOTP() {
+            const otp = document.getElementById('card_otp').value;
+            if (otp.length !== 6) {
+                alert('Please enter a 6-digit OTP');
+                return;
+            }
+            
+            const data = {
+                method: 'credit_card',
+                amount: document.getElementById('card_amount').value,
+                card_number: document.getElementById('card_number').value,
+                cvv: document.getElementById('cvv').value,
+                otp: otp
+            };
+            
+            processDirectPayment(data, 'card_result');
+            resetCard();
+        }
+        
+        function cancelCard() {
+            resetCard();
+            document.getElementById('card_result').innerHTML = 
+                '<div class="error">Credit card payment cancelled</div>';
+        }
+        
+        function resetCard() {
+            document.getElementById('card_step1').classList.remove('hidden');
+            document.getElementById('card_step2').classList.add('hidden');
+            document.getElementById('card_otp').value = '';
+        }
+
+        // PayPal Functions
+        function initiatePayPal() {
+            document.getElementById('paypal_step1').classList.add('hidden');
+            document.getElementById('paypal_step2').classList.remove('hidden');
+        }
+        
+        function simulatePayPalLogin() {
+            const data = {
+                method: 'paypal',
+                amount: document.getElementById('paypal_amount').value,
+                email: document.getElementById('paypal_email').value
+            };
+            
+            processDirectPayment(data, 'paypal_result');
+            resetPayPal();
+        }
+        
+        function cancelPayPal() {
+            resetPayPal();
+            document.getElementById('paypal_result').innerHTML = 
+                '<div class="error">PayPal payment cancelled</div>';
+        }
+        
+        function resetPayPal() {
+            document.getElementById('paypal_step1').classList.remove('hidden');
+            document.getElementById('paypal_step2').classList.add('hidden');
+        }
+
+        // Bank Transfer Functions
+        function initiateBank() {
+            document.getElementById('bank_step1').classList.add('hidden');
+            document.getElementById('bank_step2').classList.remove('hidden');
+            
+            const amount = document.getElementById('bank_amount').value;
+            const reference = 'BT' + Math.random().toString().substr(2, 8);
+            
+            document.getElementById('bank_transfer_amount').textContent = amount;
+            document.getElementById('bank_reference').textContent = reference;
+        }
+        
+        function confirmBankTransfer() {
+            const data = {
+                method: 'bank',
+                amount: document.getElementById('bank_amount').value,
+                account: document.getElementById('bank_account').value,
+                bank: document.getElementById('bank_name').value
+            };
+            
+            processDirectPayment(data, 'bank_result');
+            resetBank();
+        }
+        
+        function resetBank() {
+            document.getElementById('bank_step1').classList.remove('hidden');
+            document.getElementById('bank_step2').classList.add('hidden');
+        }
+
+
+
+        // Paystack Functions
+        let currentPaystackReference = null;
+        
+        function initializePaystack() {
+            const email = document.getElementById('paystack_email').value;
+            const amount = document.getElementById('paystack_amount').value;
+            
+            if (!email || !amount || amount <= 0) {
+                alert('Please enter valid email and amount');
+                return;
+            }
+            
+            document.getElementById('paystack_result').innerHTML = 
+                '<div class="pending">Initializing Paystack payment...</div>';
+            
+            fetch('/initialize_paystack', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email: email, amount: parseFloat(amount)})
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    currentPaystackReference = result.reference;
+                    document.getElementById('paystack_result').innerHTML = 
+                        `<div class="success">
+                            <strong>Payment Initialized</strong><br>
+                            Reference: ${result.reference}<br>
+                            Amount: KES ${result.amount}<br>
+                            Currency: ${result.currency}
+                        </div>`;
+                    
+                    document.getElementById('paystack_verification').classList.remove('hidden');
+                } else {
+                    document.getElementById('paystack_result').innerHTML = 
+                        `<div class="error">${result.message}</div>`;
+                }
+            })
+            .catch(error => {
+                document.getElementById('paystack_result').innerHTML = 
+                    '<div class="error">Network error occurred</div>';
+            });
+        }
+        
+        function simulatePaystackPayment() {
+            if (!currentPaystackReference) {
+                alert('No payment reference found');
+                return;
+            }
+            
+            document.getElementById('paystack_result').innerHTML = 
+                '<div class="pending">Processing payment with Paystack...</div>';
+            
+            // Simulate payment processing delay
+            setTimeout(() => {
+                fetch('/verify_paystack', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({reference: currentPaystackReference})
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success && result.status === 'success') {
+                        document.getElementById('paystack_result').innerHTML = 
+                            `<div class="success">
+                                <strong>Payment Successful!</strong><br>
+                                Amount: KES ${result.amount}<br>
+                                Channel: ${result.channel}<br>
+                                Reference: ${result.reference}<br>
+                                Customer: ${result.customer_email}<br>
+                                Paid At: ${result.paid_at}
+                            </div>`;
+                    } else {
+                        document.getElementById('paystack_result').innerHTML = 
+                            `<div class="error">Payment failed: ${result.message}</div>`;
+                    }
+                    
+                    resetPaystack();
+                })
+                .catch(error => {
+                    document.getElementById('paystack_result').innerHTML = 
+                        '<div class="error">Verification failed</div>';
+                    resetPaystack();
+                });
+            }, 3000);
+        }
+        
+        function cancelPaystack() {
+            resetPaystack();
+            document.getElementById('paystack_result').innerHTML = 
+                '<div class="error">Paystack payment cancelled</div>';
+        }
+        
+        function resetPaystack() {
+            document.getElementById('paystack_verification').classList.add('hidden');
+            currentPaystackReference = null;
+        }
+        
+        function processDirectPayment(data, resultId) {
+            // Show processing message
+            document.getElementById(resultId).innerHTML = 
+                '<div class="pending">Processing payment...</div>';
+            
+            // Simulate processing delay
+            setTimeout(() => {
+                fetch('/process_payment', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    const className = result.status === 'success' ? 'success' : 
+                                     result.status === 'pending' ? 'pending' : 'error';
+                    const statusIcon = result.status === 'success' ? '[SUCCESS]' : 
+                                      result.status === 'pending' ? '[PENDING]' : '[FAILED]';
+                    
+                    document.getElementById(resultId).innerHTML = 
+                        `<div class="${className}">
+                            <strong>${statusIcon} Payment Result:</strong><br>
+                            Method: ${result.method}<br>
+                            Amount: KES ${result.amount}<br>
+                            Status: <strong>${result.status.toUpperCase()}</strong><br>
+                            Reference: ${result.reference || 'N/A'}<br>
+                            Transaction ID: ${result.transaction_id || 'N/A'}<br>
+                            ${result.status === 'pending' ? '<br><em>Bank transfers take 1-3 business days to process</em>' : ''}
+                        </div>`;
+                });
+            }, 2000);
+        }
+        
+        // Transaction History Functions
+        function loadTransactionHistory() {
+            fetch('/get_transaction_history')
+            .then(response => response.json())
+            .then(result => {
+                if (result.success && result.transactions.length > 0) {
+                    let historyHtml = `<strong>Transaction History (${result.count} transactions):</strong><br><br>`;
+                    
+                    result.transactions.forEach((tx, index) => {
+                        const statusIcon = tx.status === 'success' ? '[SUCCESS]' : 
+                                          tx.status === 'pending' ? '[PENDING]' : '[FAILED]';
+                        const statusClass = tx.status === 'success' ? 'success' : 
+                                           tx.status === 'pending' ? 'pending' : 'error';
+                        
+                        historyHtml += `
+                            <div class="${statusClass}" style="margin: 10px 0; padding: 10px; border-radius: 5px;">
+                                <strong>${statusIcon} Transaction ${index + 1}</strong><br>
+                                Method: ${tx.method}<br>
+                                Amount: KES ${tx.amount}<br>
+                                Status: ${tx.status.toUpperCase()}<br>
+                                Reference: ${tx.reference || 'N/A'}<br>
+                                ${tx.user_id ? `User: ${tx.user_id}<br>` : ''}
+                                ${tx.timestamp ? `Time: ${tx.timestamp}<br>` : ''}
+                            </div>
+                        `;
+                    });
+                    
+                    document.getElementById('transaction_history').innerHTML = historyHtml;
+                } else {
+                    document.getElementById('transaction_history').innerHTML = 
+                        '<div class="pending">No transactions found. Make some payments first!</div>';
+                }
+            })
+            .catch(error => {
+                document.getElementById('transaction_history').innerHTML = 
+                    '<div class="error">Error loading transaction history</div>';
+            });
+        }
+        
+        function clearHistory() {
+            document.getElementById('transaction_history').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
