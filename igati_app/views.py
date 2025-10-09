@@ -60,7 +60,9 @@ def register(request):
 
         
 
-        #start of login endpoint
+#start of login endpoint
+@csrf_exempt
+@api_view(['GET'])
 def login(request, email, password):
     try:
         user = authe.sign_in_with_email_and_password(email,password)
