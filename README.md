@@ -6,30 +6,30 @@
 This endpoint allows new users to register by providing their personal details.
 The system checks if the email already exists, creates a new user in the authentication service, and then stores the user’s details in the database.
 # Request Body
-{
-  "firstName": "John",
-  "lastName": "Doe",
-  "email": "johndoe@example.com",
-  "password": "yourpassword123",
-  "phoneNumber": "0712345678"
-}
+# {
+#  "firstName": "John",
+#  "lastName": "Doe",
+# "email": "johndoe@example.com",
+#  "password": "yourpassword123",
+#  "phoneNumber": "0712345678"
+# }
 
 # Response Examples
 # ✅ Success Response
-{
-  "message": "Successfully registered"
-}
+# {
+#  "message": "Successfully registered"
+# }
 
 # ❌ Error Response — Email already exists
-{
-  "message": "Email already exists"
-}
+# {
+#  "message": "Email already exists"
+# }
 # Status Code: 400 Bad Request
 
 # ❌ Error Response — Invalid Input / Server Error
-{
-  "error": "Error message details"
-}
+# {
+#  "error": "Error message details"
+# }
 # Status Code: 500 Internal Server Error
 # How It Works
 
