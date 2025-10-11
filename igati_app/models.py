@@ -6,7 +6,7 @@ import string
 from django.contrib.auth.models import User
 
 # User model- will store the users of igati
-class Users(models.Model):
+class User(models.Model):
     # firebase_uid = models.CharField(max_length=128, unique=True)  # UID from Firebase
     firstName = models.CharField(max_length=50)
     lastName = models.CharField(max_length=50)
@@ -27,7 +27,7 @@ class Users(models.Model):
 
 # Project model- will store the igati projects
 class Project(models.Model):
-    owner = models.ForeignKey(Users, on_delete=models.CASCADE)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
     description = models.TextField()
     image = models.URLField(blank=True, null=True, default='https://res.cloudinary.com/dc68huvjj/image/upload/v1748119193/zzy3zwrius3kjrzp4ifc.png')
@@ -94,7 +94,7 @@ class Product(models.Model):
         ('Maize flour', 'Maize flour'),
         ('Hen', 'Hen'),
     ]
-    seller = models.ForeignKey(Users, on_delete=models.CASCADE, related_name="products", default=1)
+    seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name="products", default=1)
     name = models.CharField(max_length=100)
     description = models.TextField(default="Product description")
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default="Honey")

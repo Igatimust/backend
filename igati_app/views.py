@@ -3,7 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 import json
 from django.http import JsonResponse
-from .models import Users, PaymentRequest, Product, Project
+from .models import User, PaymentRequest, Product, Project, Notification, ProductOrder
 import pyrebase
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status, permissions
@@ -47,7 +47,7 @@ def register(request):
        
 
         # Check if email already exists
-        if Users.objects.filter(email=email).exists():
+        if User.objects.filter(email=email).exists():
             return JsonResponse({"message": "Email already exists"}, status=400)
 
         # Create user
@@ -55,7 +55,7 @@ def register(request):
         uid = user['localId']
 
         # Save member
-        user = Users(email=email,firstName=firstName,lastName=lastName ,password=uid ,phoneNumber=phoneNumber)
+        user = User(email=email,firstName=firstName,lastName=lastName ,password=uid ,phoneNumber=phoneNumber)
         user.save()
 
         return JsonResponse({"message": "Successfully registered"}, status=201)
@@ -72,12 +72,12 @@ def register(request):
 def login(request, email, password):
     try:
         user = authe.sign_in_with_email_and_password(email,password)
-        if Users.objects.filter(email=email).exists() and user:
+        if User.objects.filter(email=email).exists() and user:
             session_id = user['idToken']
             print ( session_id)
             request.session['uid'] = str(session_id)
             return JsonResponse({"message": "Successfully logged in"})
-        elif not Users.objects.filter(email=email).exists():
+        elif not User.objects.filter(email=email).exists():
             return JsonResponse({"message": "No user found with this email,please register"})
         elif not user:
             return JsonResponse({"message": "Invalid email"})
@@ -516,8 +516,8 @@ def add_project(request):
         return JsonResponse({'success': False, 'message': 'Missing required fields'}, status=400)
 
     try:
-        user = Users.objects.get(id=user_id)
-    except Users.DoesNotExist:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
         return JsonResponse({'success': False, 'message': 'User not found'}, status=404)
     
     image_url = None
@@ -620,6 +620,6 @@ def get_user_notifications(request, user_id):
         user = User.objects.get(id=user_id)
         notifications = Notification.objects.filter(userId=user, is_read=False).order_by('-created_at')
         serializer = NotificationSerializer(notifications, many=True)
-        return Response(serializer.data)
+        return JsonResponse(serializer.data, safe=False)
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
