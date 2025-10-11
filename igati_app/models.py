@@ -30,7 +30,7 @@ class Project(models.Model):
     owner = models.ForeignKey(Users, on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
     description = models.TextField()
-    image = models.URLField(blank=True, null=True)
+    image = models.URLField(blank=True, null=True, default='https://res.cloudinary.com/dc68huvjj/image/upload/v1748119193/zzy3zwrius3kjrzp4ifc.png')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -88,12 +88,22 @@ class PaymentRequest(models.Model):
 # cart/models.py
 
 class Product(models.Model):
+    CATEGORY_CHOICES = [
+        ('Honey', 'Honey'),
+        ('Maize', 'Maize'),
+        ('Maize flour', 'Maize flour'),
+        ('Hen', 'Hen'),
+    ]
+    seller = models.ForeignKey(Users, on_delete=models.CASCADE, related_name="products")
     name = models.CharField(max_length=100)
+    description = models.TextField()
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default="Honey")
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.name
+        return f"{self.name} (Ksh{self.price}) {self.stock}"
 
 
 class Cart(models.Model):
@@ -113,3 +123,27 @@ class CartItem(models.Model):
         return self.product.price * self.quantity
 
 # end of Cart model
+
+# productOrder model - ushindi
+class ProductOrder(models.Model):
+    product_id = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='products')
+    userId = models.ForeignKey(User, on_delete=models.CASCADE, related_name='product_orders', default=1)
+    product_name = models.CharField(max_length=200)
+    quantity = models.IntegerField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    delivered = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Order {self.id} by {self.userId.name} for {self.product_name}"
+
+
+# user notification mdoel - ushindi
+class Notification(models.Model):
+    userId = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications', default=1)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Notification {self.id} for {self.userId.name}"

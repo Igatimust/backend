@@ -3,8 +3,14 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 import json
 from django.http import JsonResponse
-from .models import Users, PaymentRequest, Product
+from .models import Users, PaymentRequest, Product, Project
 import pyrebase
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework import status, permissions
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
+from .serializers import NotificationSerializer
+import cloudinary.uploader
 
 
 config = {
@@ -370,19 +376,65 @@ def list_payments(request):
 
 
 
-# products apis - caroline
+# products apis 
+
+# api to add product
+@api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
+def add_product(request):
+    if request.method == 'POST':
+        try:
+            name = request.POST.get("name")
+            description = request.POST.get("description")
+            category = request.POST.get("category")
+            price = request.POST.get("price")
+            stock = request.POST.get("stock")
+            image = request.FILES.get("image")
+
+            if not all([name, category, price, stock, image]):
+                return JsonResponse({"message": "All fields are required"}, status=400)
+
+            # Create the product
+            result = cloudinary.uploader.upload(image)
+            image_url = result.get('secure_url')
+
+            product = Product.objects.create(
+                name=name,
+                description=description,
+                category=category,
+                price=price,
+                stock=stock,
+                image=image_url,
+            )
+
+            return JsonResponse({"message": "Product added successfully", "product_id": product.id}, status=201)
+
+        except Exception as e:
+            print("Error:", str(e))
+            return JsonResponse({"message": "An error occurred", "error": str(e)}, status=500)
+# end of api to add products
+
+# - caroline
 
 # Temporary simple cart (we'll use session)
+@csrf_exempt
+@api_view(["GET"])
 def product_list(request):
-    products = Product.objects.all()
-    return render(request, 'cart/product_list.html', {'products': products})
+    products = Product.objects.all().values()
+    return Response({
+        'success': True,
+        'products': list(products)
+    })
+    # return render(request, 'cart/product_list.html', {'products': products})
 
+@api_view(["GET"])
 def add_to_cart(request, product_id):
     cart = request.session.get('cart', {})
     cart[product_id] = cart.get(product_id, 0) + 1
     request.session['cart'] = cart
     return redirect('cart_view')
 
+@api_view(["GET"])
 def remove_from_cart(request, product_id):
     cart = request.session.get('cart', {})
     if str(product_id) in cart:
@@ -390,12 +442,14 @@ def remove_from_cart(request, product_id):
     request.session['cart'] = cart
     return redirect('cart_view')
 
+@api_view(["GET"])
 def increase_quantity(request, product_id):
     cart = request.session.get('cart', {})
     cart[str(product_id)] = cart.get(str(product_id), 0) + 1
     request.session['cart'] = cart
     return redirect('cart_view')
 
+@api_view(["GET"])
 def decrease_quantity(request, product_id):
     cart = request.session.get('cart', {})
     if str(product_id) in cart:
@@ -405,6 +459,7 @@ def decrease_quantity(request, product_id):
     request.session['cart'] = cart
     return redirect('cart_view')
 
+@api_view(["GET"])
 def cart_view(request):
     cart = request.session.get('cart', {})
     cart_items = []
@@ -420,3 +475,147 @@ def cart_view(request):
         })
     return render(request, 'cart/cart.html', {'cart_items': cart_items, 'total': total})
 # end of products aois
+
+
+# project apis
+
+# api to get projects
+@api_view(['GET'])
+def get_projects(request):
+    projects = Project.objects.all().order_by('-created_at')
+    projects_list = []
+
+    for p in projects:
+        projects_list.append({
+            'id': p.id,
+            'owner_id': p.owner.id,
+            'owner_name': f"{p.owner.firstName} {p.owner.lastName}",
+            'title': p.title,
+            'description': p.description,
+            'image': p.image,
+            'created_at': p.created_at,
+        })
+
+    return JsonResponse({'success': True, 'projects': projects_list}, safe=False, status=status.HTTP_200_OK)
+
+
+# api to add project
+@api_view(['POST'])
+@parser_classes([MultiPartParser])
+def add_project(request):
+    user_id = request.data.get('user_id')
+    title = request.data.get('title')
+    description = request.data.get('description')
+    image = request.FILES.get('image')
+
+    if not user_id or not title or not description:
+        return JsonResponse({'success': False, 'message': 'Missing required fields'}, status=400)
+
+    try:
+        user = Users.objects.get(id=user_id)
+    except Users.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'User not found'}, status=404)
+    
+    image_url = None
+    if image:
+        upload_result = cloudinary.uploader.upload(image)
+        image_url = upload_result.get("secure_url")
+
+    project = Project.objects.create(
+        owner=user,
+        title=title,
+        description=description,
+        image=image_url
+    )
+
+    data = {
+        'id': project.id,
+        'owner_id': user.id,
+        'owner_name': f"{user.firstName} {user.lastName}",
+        'title': project.title,
+        'description': project.description,
+        'image': project.image,
+        'created_at': project.created_at,
+    }
+
+    return JsonResponse({'success': True, 'project': data}, status=status.HTTP_201_CREATED)
+
+
+# end of project apis
+
+
+# api to store order
+# create bulky order api
+@csrf_exempt
+@api_view(['POST'])
+def create_bulk_order(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_id = data.get("user_id")
+            products = data.get("products", [])  # List of items
+
+            if not user_id or not products:
+                return JsonResponse({"message": "User ID and product list are required"}, status=400)
+
+            user = User.objects.filter(id=user_id).first()
+            if not user:
+                return JsonResponse({"message": "User not found"}, status=404)
+
+            order_ids = []
+            for item in products:
+                product_id = item.get("product_id")
+                product_name = item.get("product_name")
+                quantity = item.get("quantity")
+                price = item.get("price")
+
+                # Check required fields
+                if not all([product_id, product_name, quantity, price]):
+                    return JsonResponse({"message": "Missing product details in one of the items"}, status=400)
+
+                product = Product.objects.filter(id=product_id).first()
+                if not product:
+                    return JsonResponse({"message": f"Product with ID {product_id} not found"}, status=404)
+
+                if quantity > product.stock:
+                    return JsonResponse({"message": f"Not enough stock for {product.name}"}, status=400)
+
+                # Create order
+                order = ProductOrder.objects.create(
+                    product_id=product,
+                    userId=user,
+                    product_name=product_name,
+                    quantity=quantity,
+                    price=price,
+                    delivered=False
+                )
+                product.stock -= quantity
+                product.save()
+                order_ids.append(order.id)
+
+                # Notification for each item
+                Notification.objects.create(
+                    userId=user,
+                    message=f"Order for {product_name} placed successfully. We’ll deliver soon.",
+                    is_read=False
+                )
+
+            return JsonResponse({"message": "All orders created successfully", "order_ids": order_ids}, status=200)
+
+        except Exception as e:
+            print("Error:", str(e))
+            return JsonResponse({"message": "An error occurred", "error": str(e)}, status=500)
+
+# endof create bulky order api
+
+
+# start of get notifications api
+@api_view(['GET'])
+def get_user_notifications(request, user_id):
+    try:
+        user = User.objects.get(id=user_id)
+        notifications = Notification.objects.filter(userId=user, is_read=False).order_by('-created_at')
+        serializer = NotificationSerializer(notifications, many=True)
+        return Response(serializer.data)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
