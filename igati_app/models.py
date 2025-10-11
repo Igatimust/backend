@@ -94,13 +94,14 @@ class Product(models.Model):
         ('Maize flour', 'Maize flour'),
         ('Hen', 'Hen'),
     ]
-    seller = models.ForeignKey(Users, on_delete=models.CASCADE, related_name="products")
+    seller = models.ForeignKey(Users, on_delete=models.CASCADE, related_name="products", default=1)
     name = models.CharField(max_length=100)
-    description = models.TextField()
+    description = models.TextField(default="Product description")
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default="Honey")
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
+    image = models.URLField(blank=True, null=True, default='https://res.cloudinary.com/dc68huvjj/image/upload/v1748119193/zzy3zwrius3kjrzp4ifc.png')
+    created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f"{self.name} (Ksh{self.price}) {self.stock}"

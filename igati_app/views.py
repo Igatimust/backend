@@ -390,6 +390,10 @@ def add_product(request):
             price = request.POST.get("price")
             stock = request.POST.get("stock")
             image = request.FILES.get("image")
+            if image == None:
+                image = "https://res.cloudinary.com/dc68huvjj/image/upload/v1748119193/zzy3zwrius3kjrzp4ifc.png"
+
+            print("Name: ", name, "Description: ", description, "Category: ", category, "Price: ", price, "Stock: ", stock, "Image: ", image)
 
             if not all([name, category, price, stock, image]):
                 return JsonResponse({"message": "All fields are required"}, status=400)
@@ -421,7 +425,7 @@ def add_product(request):
 @api_view(["GET"])
 def product_list(request):
     products = Product.objects.all().values()
-    return Response({
+    return JsonResponse({
         'success': True,
         'products': list(products)
     })
