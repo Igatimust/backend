@@ -6,7 +6,7 @@ urlpatterns = [
     # celestine - urls
     # User Authentication APIs
     path('register/', views.register, name='register'),
-    path('login/<str:email>/<str:password>/', views.login, name='login'),
+    path('login/', views.login, name='login'),
 
     # melby -urls
     # Main Payment APIs
@@ -18,11 +18,11 @@ urlpatterns = [
     # caroline - urls
     # Shopping Cart APIs
     path('product_list/', views.product_list, name='product_list'),
-    path('add/<int:product_id>/', views.add_to_cart, name='add_to_cart'),
-    path('remove/<int:product_id>/', views.remove_from_cart, name='remove_from_cart'),
-    path('increase/<int:product_id>/', views.increase_quantity, name='increase_quantity'),
-    path('decrease/<int:product_id>/', views.decrease_quantity, name='decrease_quantity'),
-    path('cart/', views.cart_view, name='cart_view'),
+    path('add_to_cart/', views.add_to_cart, name='add_to_cart'),
+    path('remove_from_cart/', views.remove_from_cart, name='remove_from_cart'),
+    path('increase_quantity/', views.increase_quantity, name='increase_quantity'),
+    path('decrease_quantity/', views.decrease_quantity, name='decrease_quantity'),
+    path('cart_view/', views.cart_view, name='cart_view'),
 
     # ushindi -urls
     # projects apis

@@ -3,7 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 import json
 from django.http import JsonResponse
-from .models import User, PaymentRequest, Product, Project, Notification, ProductOrder
+from .models import User, PaymentRequest, Product, Project, Notification, ProductOrder, Cart
 import pyrebase
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status, permissions
@@ -68,24 +68,31 @@ def register(request):
 
 #start of login endpoint
 @csrf_exempt
-@api_view(['GET'])
-def login(request, email, password):
+@api_view(['POST'])
+def login(request):
+    email = request.data.get('email')
+    password = request.data.get('password')
+
+    if not email or not password:
+        return JsonResponse({"message": "Email and password are required"}, status=400)
+
     try:
-        user = authe.sign_in_with_email_and_password(email,password)
+        user = authe.sign_in_with_email_and_password(email, password)
+
         if User.objects.filter(email=email).exists() and user:
             session_id = user['idToken']
-            print ( session_id)
             request.session['uid'] = str(session_id)
-            return JsonResponse({"message": "Successfully logged in"})
+            return JsonResponse({"message": "Successfully logged in", "token": session_id}, status=200)
         elif not User.objects.filter(email=email).exists():
-            return JsonResponse({"message": "No user found with this email,please register"})
-        elif not user:
-            return JsonResponse({"message": "Invalid email"})
+            return JsonResponse({"message": "No user found with this email, please register"}, status=404)
         else:
-            return JsonResponse({"message": "please register"})
-    except:
-        message = "Invalid Credentials!! Please Check your data"
-        return JsonResponse({"message": message})
+            return JsonResponse({"message": "Invalid credentials"}, status=401)
+
+    except Exception as e:
+        return JsonResponse({"message": "Invalid credentials! Please check your data"}, status=401)
+
+# end of login api
+
     
 
 # melby -apis from views.py
@@ -421,6 +428,8 @@ def add_product(request):
 # - caroline
 
 # Temporary simple cart (we'll use session)
+
+# api to get all the products
 @csrf_exempt
 @api_view(["GET"])
 def product_list(request):
@@ -431,53 +440,163 @@ def product_list(request):
     })
     # return render(request, 'cart/product_list.html', {'products': products})
 
-@api_view(["GET"])
-def add_to_cart(request, product_id):
-    cart = request.session.get('cart', {})
-    cart[product_id] = cart.get(product_id, 0) + 1
-    request.session['cart'] = cart
-    return redirect('cart_view')
+# api to add product to cart
+@api_view(["POST"])
+def add_to_cart(request):
+    # Get data (works for JSON requests from React)
+    product_id = request.data.get("product_id")
+    user_id = request.data.get("user_id")
 
-@api_view(["GET"])
-def remove_from_cart(request, product_id):
-    cart = request.session.get('cart', {})
-    if str(product_id) in cart:
-        del cart[str(product_id)]
-    request.session['cart'] = cart
-    return redirect('cart_view')
+    if not product_id or not user_id:
+        return JsonResponse({'success': False, 'message': 'product_id and user_id are required'}, status=400)
 
-@api_view(["GET"])
-def increase_quantity(request, product_id):
-    cart = request.session.get('cart', {})
-    cart[str(product_id)] = cart.get(str(product_id), 0) + 1
-    request.session['cart'] = cart
-    return redirect('cart_view')
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'User not found'}, status=404)
 
-@api_view(["GET"])
-def decrease_quantity(request, product_id):
-    cart = request.session.get('cart', {})
-    if str(product_id) in cart:
-        cart[str(product_id)] -= 1
-        if cart[str(product_id)] <= 0:
-            del cart[str(product_id)]
-    request.session['cart'] = cart
-    return redirect('cart_view')
+    # Create or update cart item
+    cart_item, created = Cart.objects.get_or_create(
+        user=user,
+        product_id=product_id
+    )
+    if not created:
+        cart_item.quantity += 1
+        cart_item.save()
 
-@api_view(["GET"])
+    return JsonResponse({
+        "success": True,
+        "message": "Product added to cart",
+        "product_id": product_id,
+        "quantity": cart_item.quantity
+    })
+
+
+# api to remove product from the cart
+@api_view(["POST"])
+def remove_from_cart(request):
+    product_id = request.data.get("product_id")
+    user_id = request.data.get("user_id")
+    # print("Product ID: ", product_id, "User ID: ", user_id)
+
+    if not product_id or not user_id:
+        return JsonResponse({'success': False, 'message': 'Product ID and User ID are required'}, status=400)
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'User not found'}, status=404)
+
+    try:
+        cart_item = Cart.objects.get(user=user, product_id=product_id)
+        cart_item.delete()
+        return JsonResponse({'success': True, 'message': 'Product removed from cart'})
+    except Cart.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Item not found in cart'}, status=404)
+
+
+# api to increase the product quantity in the cary
+@api_view(["POST"])
+def increase_quantity(request):
+    product_id = request.data.get("product_id")
+    user_id = request.data.get("user_id")
+
+    if not product_id or not user_id:
+        return JsonResponse({'success': False, 'message': 'Product ID and User ID are required'}, status=400)
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'User not found'}, status=404)
+
+    try:
+        cart_item = Cart.objects.get(user=user, product_id=product_id)
+        cart_item.quantity += 1
+        cart_item.save()
+        return JsonResponse({
+            'success': True,
+            'message': 'Quantity increased',
+            'product_id': product_id,
+            'new_quantity': cart_item.quantity
+        })
+    except Cart.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Item not found in cart'}, status=404)
+
+
+# api to decrease product quantity in the cart
+@api_view(["POST"])
+def decrease_quantity(request):
+    product_id = request.data.get("product_id")
+    user_id = request.data.get("user_id")
+
+    if not product_id or not user_id:
+        return JsonResponse({'success': False, 'message': 'Product ID and User ID are required'}, status=400)
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'User not found'}, status=404)
+
+    try:
+        cart_item = Cart.objects.get(user=user, product_id=product_id)
+        cart_item.quantity -= 1
+
+        if cart_item.quantity <= 0:
+            cart_item.delete()
+            return JsonResponse({
+                'success': True,
+                'message': 'Item removed from cart',
+                'product_id': product_id
+            })
+        else:
+            cart_item.save()
+            return JsonResponse({
+                'success': True,
+                'message': 'Quantity decreased',
+                'product_id': product_id,
+                'new_quantity': cart_item.quantity
+            })
+    except Cart.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Item not found in cart'}, status=404)
+
+# api to view products in the cart
+@api_view(["POST"])
 def cart_view(request):
-    cart = request.session.get('cart', {})
+    user_id = request.data.get("user_id")
+
+    if not user_id:
+        return JsonResponse({'success': False, 'message': 'User ID is required'}, status=400)
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'User not found'}, status=404)
+
+    # Get all cart items for this user
+    cart_items_queryset = Cart.objects.filter(user=user)
     cart_items = []
     total = 0
-    for product_id, quantity in cart.items():
-        product = get_object_or_404(Product, pk=product_id)
-        subtotal = product.price * quantity
+
+    for item in cart_items_queryset:
+        product = get_object_or_404(Product, pk=item.product_id)
+        subtotal = product.price * item.quantity
         total += subtotal
         cart_items.append({
-            'product': product,
-            'quantity': quantity,
-            'subtotal': subtotal,
+            'id': item.id,
+            'product_id': product.id,
+            'product_name': product.name,
+            'product_image':product.image,
+            'price': product.price,
+            'quantity': item.quantity,
+            'subtotal': subtotal
         })
-    return render(request, 'cart/cart.html', {'cart_items': cart_items, 'total': total})
+
+    return JsonResponse({
+        'success': True,
+        'cart_items': cart_items,
+        'total': total
+    })
+
 # end of products aois
 
 

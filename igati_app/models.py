@@ -108,11 +108,9 @@ class Product(models.Model):
 
 
 class Cart(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def total_price(self):
-        return sum(item.total() for item in self.items.all())
+    user = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
+    product_id = models.IntegerField(default=1)
+    quantity = models.IntegerField(default=1)
 
 
 class CartItem(models.Model):
