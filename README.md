@@ -1,11 +1,11 @@
-📝 User Registration API
-Endpoint
-POST /register/
-Description
+# 📝 User Registration API
+# Endpoint
+# POST /register/
+# Description
 
 This endpoint allows new users to register by providing their personal details.
 The system checks if the email already exists, creates a new user in the authentication service, and then stores the user’s details in the database.
-Request Body
+# Request Body
 {
   "firstName": "John",
   "lastName": "Doe",
@@ -14,24 +14,24 @@ Request Body
   "phoneNumber": "0712345678"
 }
 
-Response Examples
-✅ Success Response
+# Response Examples
+# ✅ Success Response
 {
   "message": "Successfully registered"
 }
 
-❌ Error Response — Email already exists
+# ❌ Error Response — Email already exists
 {
   "message": "Email already exists"
 }
-Status Code: 400 Bad Request
+# Status Code: 400 Bad Request
 
-❌ Error Response — Invalid Input / Server Error
+# ❌ Error Response — Invalid Input / Server Error
 {
   "error": "Error message details"
 }
-Status Code: 500 Internal Server Error
-How It Works
+# Status Code: 500 Internal Server Error
+# How It Works
 
 The API receives the request body in JSON format.
 
