@@ -94,9 +94,6 @@ DATABASES = {
         'PORT': '5432',
     }
 }
-
-postgresql://igatidb_941w_user:TdJXaP9FMt1wkG4onfeHLXW7DOc9paAO@dpg-d3rnn3c9c44c73as84n0-a.oregon-postgres.render.com/igatidb_941w
-
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
