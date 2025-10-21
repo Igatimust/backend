@@ -87,13 +87,15 @@ DATABASES = {
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'igatidb',
-        'USER': 'igatidb_user',
-        'PASSWORD': '2hR5zUf6o875eU6iAWqvjSDg7MR5It8a',
-        'HOST': 'dpg-d3la1opr0fns73drkceg-a.oregon-postgres.render.com',
+        'NAME': 'igatidb_941w',
+        'USER': 'igatidb_941w_user',
+        'PASSWORD': 'TdJXaP9FMt1wkG4onfeHLXW7DOc9paAO',
+        'HOST': 'dpg-d3rnn3c9c44c73as84n0-a.oregon-postgres.render.com',
         'PORT': '5432',
     }
 }
+
+postgresql://igatidb_941w_user:TdJXaP9FMt1wkG4onfeHLXW7DOc9paAO@dpg-d3rnn3c9c44c73as84n0-a.oregon-postgres.render.com/igatidb_941w
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
