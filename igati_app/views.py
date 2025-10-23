@@ -11,6 +11,8 @@ from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from .serializers import NotificationSerializer
 import cloudinary.uploader
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
 
 
 config = {
@@ -28,7 +30,7 @@ authe = firebase.auth()
 database = firebase.database()
 
 def index(request):
-    return HttpResponse("Welcome to Igati!")
+    return render(request, "doc.html")
 
 #start of register endpoint
 
@@ -48,7 +50,7 @@ def register(request):
 
         # Check if email already exists
         if User.objects.filter(email=email).exists():
-            return JsonResponse({"message": "Email already exists"}, status=400)
+            return Response({"message": "Email already exists"}, status=400)
 
         # Create user
         user = authe.create_user_with_email_and_password(email, password)
@@ -58,11 +60,11 @@ def register(request):
         user = User(email=email,firstName=firstName,lastName=lastName ,password=uid ,phoneNumber=phoneNumber)
         user.save()
 
-        return JsonResponse({"message": "Successfully registered"}, status=201)
+        return Response({"message": "Successfully registered"}, status=201)
 
     except Exception as e:
         print("Error:", str(e))
-        return JsonResponse({"error":str(e)})
+        return Response({"error":str(e)})
 
         
 
