@@ -5,6 +5,7 @@ charset-normalizer==3.4.3
 cloudinary==1.44.1
 cryptography==46.0.2
 Django==5.2.7
+django-cors-headers==4.9.0
 djangorestframework==3.16.1
 drf-yasg==1.21.11
 gcloud==0.18.3
