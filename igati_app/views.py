@@ -82,9 +82,23 @@ def login(request):
         user = authe.sign_in_with_email_and_password(email, password)
 
         if User.objects.filter(email=email).exists() and user:
+            user_obj = User.objects.get(email=email)
             session_id = user['idToken']
             request.session['uid'] = str(session_id)
-            return JsonResponse({"message": "Successfully logged in", "token": session_id}, status=200)
+            response_data = {
+                "message": "Successfully logged in",
+                "token": session_id,
+                "user": {
+                    "id": user_obj.id,
+                    "firstName": user_obj.firstName,
+                    "lastName": user_obj.lastName,
+                    "email": user_obj.email,
+                    "phoneNumber": user_obj.phoneNumber
+                }
+            }
+            
+            return JsonResponse(response_data, status=200)
+            
         elif not User.objects.filter(email=email).exists():
             return JsonResponse({"message": "No user found with this email, please register"}, status=404)
         else:
