@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+    
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -7,6 +8,15 @@ urlpatterns = [
     # User Authentication APIs
     path('register/', views.register, name='register'),
     path('login/', views.login, name='login'),
+       # Forgot password - sends email with reset link
+    path('api/forgot-password/', views.forgot_password, name='forgot_password'),
+    # Password reset confirm - handles the link clicked from email
+    path('password-reset-confirm/<uidb64>/<token>/', views.password_reset_confirm, name='password_reset_confirm'),
+    # Password reset complete - success page
+    path('password-reset-complete/', views.password_reset_complete, name='password_reset_complete'),
+    path('logout/', views.logout, name='logout'),
+    path('users/<int:user_id>/edit/', views.edit_user, name='edit_user'),
+    path('users/<int:user_id>/delete/', views.delete_user, name='delete_user'),
 
     # melby -urls
     # Main Payment APIs

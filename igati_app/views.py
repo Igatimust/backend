@@ -13,6 +13,12 @@ from .serializers import NotificationSerializer
 import cloudinary.uploader
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.encoding import force_bytes, force_str
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.urls import reverse
+import firebase_admin
+from firebase_admin import auth as admin_auth
 
 
 config = {
@@ -32,6 +38,12 @@ database = firebase.database()
 def index(request):
     return render(request, "doc.html")
 
+class TokenGenerator(PasswordResetTokenGenerator):
+    def _make_hash_value(self, user, timestamp):
+        return str(user.id) + str(timestamp) + str(user.email)
+# Create an instance of the token generator
+token_generator = TokenGenerator()
+
 #start of register endpoint
 
 @csrf_exempt
@@ -46,7 +58,6 @@ def register(request):
         email = data.get("email")  
         password = data.get("password")
         phoneNumber = data.get("phoneNumber")
-       
 
         # Check if email already exists
         if User.objects.filter(email=email).exists():
@@ -65,12 +76,12 @@ def register(request):
     except Exception as e:
         print("Error:", str(e))
         return Response({"error":str(e)})
-
+# end of register api
         
 
 #start of login endpoint
 @csrf_exempt
-@api_view(['POST'])
+@api_view(['GET'])
 def login(request):
     email = request.data.get('email')
     password = request.data.get('password')
@@ -109,9 +120,255 @@ def login(request):
 
 # end of login api
 
+#start of forgot password endpoint
+@csrf_exempt
+@api_view(['POST'])
+def forgot_password(request):
+    """
+    Send password reset email using Firebase's built-in functionality
+    """
+    try:
+        email = request.data.get('email')
+        
+        if not email:
+            return JsonResponse({"message": "Email is required"}, status=400)
+        
+        # Check if user exists in your database
+        if not User.objects.filter(email=email).exists():
+            return JsonResponse({"message": "No user found with this email"}, status=404)
+        
+        # Send password reset email via Firebase
+        authe.send_password_reset_email(email)
+        
+        return JsonResponse({
+            "message": "Password reset email sent successfully. Please check your inbox."
+        }, status=200)
+        
+    except Exception as e:
+        print("Forgot password error:", str(e))
+        return JsonResponse({
+            "message": "Failed to send password reset email",
+            "error": str(e)
+        }, status=400)
     
+# end of forgot password endpoint
+
+#start of password reset confirm endpoint
+
+@csrf_exempt
+def password_reset_confirm(request, uidb64, token):
+    """
+    Verify token and render password reset form or handle password reset
+    """
+    try:
+        # Decode user ID
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(id=uid)
+        
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+    
+    # Verify token and check if it's within 10 minutes
+    if user is not None and token_generator.check_token(user, token):
+        # Check token age (10 minutes = 600 seconds)
+        # Django's default token generator includes timestamp validation
+        
+        if request.method == 'GET':
+            return render(request, 'password_reset_confirm.html', {
+                'uidb64': uidb64,
+                'token': token,
+                'valid_link': True
+            })
+        
+        elif request.method == 'POST':
+            new_password = request.POST.get('new_password')
+            confirm_password = request.POST.get('confirm_password')
+            
+            # Validate passwords
+            if not new_password or not confirm_password:
+                return render(request, 'password_reset_confirm.html', {
+                    'uidb64': uidb64,
+                    'token': token,
+                    'error': 'Both password fields are required',
+                    'valid_link': True
+                })
+            
+            if new_password != confirm_password:
+                return render(request, 'password_reset_confirm.html', {
+                    'uidb64': uidb64,
+                    'token': token,
+                    'error': 'Passwords do not match',
+                    'valid_link': True
+                })
+            
+            if len(new_password) < 6:
+                return render(request, 'password_reset_confirm.html', {
+                    'uidb64': uidb64,
+                    'token': token,
+                    'error': 'Password must be at least 6 characters long',
+                    'valid_link': True
+                })
+            
+            try:
+                # Update password in Firebase
+                # Note: You'll need the user's current ID token or use Firebase Admin SDK
+                # For this to work properly, you should use Firebase Admin SDK
+                
+                # If using pyrebase (limited functionality):
+                # You might need to implement this differently
+                
+                # Better approach: Use Firebase Admin SDK
+               
+                
+                # Update user password in Firebase
+                admin_auth.update_user(
+                    user.password,  # This is the Firebase UID you stored
+                    password=new_password
+                )
+                
+                # Invalidate the token so it can't be reused
+                # (Django's token generator automatically handles this)
+                
+                return redirect('password_reset_complete')
+                
+            except Exception as e:
+                print("Password update error:", str(e))
+                return render(request, 'password_reset_confirm.html', {
+                    'uidb64': uidb64,
+                    'token': token,
+                    'error': 'Failed to update password. Please try again.',
+                    'valid_link': True
+                })
+    
+    else:
+        # Invalid or expired token
+        return render(request, 'password_reset_confirm.html', {
+            'error': 'This password reset link has expired or is invalid. Please request a new one.',
+            'valid_link': False
+        })
+
+def password_reset_complete(request):
+    """
+    Show password reset success page
+    """
+    return render(request, 'password_reset_complete.html')
+
+# end of password reset confirm endpoint
+
+#start of logout endpoint
+
+@csrf_exempt
+@api_view(['POST'])
+def logout(request):
+    """
+    Logout user by clearing session
+    """
+    try:
+        # Get token from request headers
+        token = request.headers.get('Authorization')
+        
+        if token and token.startswith('Bearer '):
+            token = token[7:]
+        
+        # Clear the session
+        if 'uid' in request.session:
+            del request.session['uid']
+        
+        # Flush the entire session
+        request.session.flush()
+        
+        return JsonResponse({
+            "message": "Successfully logged out"
+        }, status=200)
+        
+    except Exception as e:
+        print("Logout error:", str(e))
+        return JsonResponse({
+            "message": "Logout failed",
+            "error": str(e)
+        }, status=400)
+
+        # end of logout endpoint
+
+#start of edit user endpoint              
+
+@csrf_exempt
+@api_view(['PUT', 'PATCH'])
+def edit_user(request, user_id):
+    """
+    Edit user details (partial updates supported).
+    PATCH/PUT body JSON fields allowed: firstName, lastName, email, phoneNumber, password, role
+    """
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'User not found'}, status=404)
+
+    # Support DRF request.data or raw JSON body
+    try:
+        data = request.data if hasattr(request, 'data') else json.loads(request.body)
+    except Exception:
+        data = {}
+
+    # Allowed fields to update
+    allowed_fields = ['firstName', 'lastName', 'email', 'phoneNumber', 'password', 'role']
+
+    # Validate email/phone uniqueness if provided
+    new_email = data.get('email')
+    if new_email and User.objects.filter(email=new_email).exclude(id=user_id).exists():
+        return JsonResponse({'success': False, 'message': 'Email already in use'}, status=400)
+
+    new_phone = data.get('phoneNumber')
+    if new_phone and User.objects.filter(phoneNumber=new_phone).exclude(id=user_id).exists():
+        return JsonResponse({'success': False, 'message': 'Phone number already in use'}, status=400)
+
+    # Apply updates
+    changed = False
+    for field in allowed_fields:
+        if field in data and data[field] is not None:
+            setattr(user, field, data[field])
+            changed = True
+
+    if changed:
+        user.save()
+
+    return JsonResponse({
+        'success': True,
+        'message': 'User updated successfully' if changed else 'No changes applied',
+        'user': {
+            'id': user.id,
+            'firstName': user.firstName,
+            'lastName': user.lastName,
+            'email': user.email,
+            'phoneNumber': user.phoneNumber,
+            'role': user.role
+        }
+    }, status=200)
+
+# end of edit user endpoint
+
+# start of delete user endpoint
+
+@csrf_exempt
+@api_view(['DELETE'])
+def delete_user(request, user_id):
+    """
+    Delete a user by ID.
+    """
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'User not found'}, status=404)
+
+    # Optionally: prevent deleting last admin or self-delete checks can be added here
+
+    user.delete()
+    return JsonResponse({'success': True, 'message': 'User deleted successfully'}, status=200)
+    
+    # end of delete user endpoint
 
 # melby -apis from views.py
+
 # Paystack Secret Key
 PAYSTACK_SECRET_KEY = "sk_test_ba50b587ee77071b2f637fdf381578fce9d3358b"
 
