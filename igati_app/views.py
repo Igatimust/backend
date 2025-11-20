@@ -81,7 +81,7 @@ def register(request):
 
 #start of login endpoint
 @csrf_exempt
-@api_view(['GET'])
+@api_view(['POST'])
 def login(request):
     email = request.data.get('email')
     password = request.data.get('password')
@@ -90,9 +90,22 @@ def login(request):
         return JsonResponse({"message": "Email and password are required"}, status=400)
 
     try:
+        # Sign in user with Firebase
         user = authe.sign_in_with_email_and_password(email, password)
 
-        if User.objects.filter(email=email).exists() and user:
+        # Get account info to check email verification
+        info = authe.get_account_info(user['idToken'])
+        email_verified = info['users'][0]['emailVerified']
+
+        if not email_verified:
+            # Resend verification email
+            authe.send_email_verification(user['idToken'])
+            return JsonResponse({
+                "message": "Email not verified. Verification email has been resent."
+            }, status=403)
+
+        # Check if user exists in Django DB
+        if User.objects.filter(email=email).exists():
             user_obj = User.objects.get(email=email)
             session_id = user['idToken']
             request.session['uid'] = str(session_id)
@@ -107,17 +120,12 @@ def login(request):
                     "phoneNumber": user_obj.phoneNumber
                 }
             }
-            
             return JsonResponse(response_data, status=200)
-            
-        elif not User.objects.filter(email=email).exists():
-            return JsonResponse({"message": "No user found with this email, please register"}, status=404)
         else:
-            return JsonResponse({"message": "Invalid credentials"}, status=401)
+            return JsonResponse({"message": "No user found with this email, please register"}, status=404)
 
     except Exception as e:
         return JsonResponse({"message": "Invalid credentials! Please check your data"}, status=401)
-
 # end of login api
 
 #start of forgot password endpoint
