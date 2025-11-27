@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Igati API Documentation</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background-color: #f5f6fa;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    header {
+      background-color: #0d6efd;
+      color: white;
+      text-align: center;
+      padding: 20px 10px;
+      font-size: 24px;
+      font-weight: bold;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .container {
+      width: 90%;
+      max-width: 1000px;
+      margin: 30px auto;
+    }
+
+    .endpoint {
+      background: white;
+      border-radius: 10px;
+      margin-bottom: 25px;
+      padding: 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .endpoint h2 {
+      color: #0d6efd;
+      font-size: 20px;
+      margin-bottom: 10px;
+    }
+
+    .method {
+      font-weight: bold;
+      color: #198754;
+      background: #e8f5e9;
+      padding: 4px 8px;
+      border-radius: 5px;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+
+    .url {
+      font-family: monospace;
+      color: #555;
+      background: #f1f1f1;
+      padding: 6px 10px;
+      border-radius: 5px;
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .section-title {
+      font-weight: bold;
+      margin-top: 10px;
+      margin-bottom: 6px;
+      color: #444;
+      border-bottom: 1px solid #ccc;
+      display: inline-block;
+      padding-bottom: 2px;
+    }
+
+    pre {
+      background: #272822;
+      color: #f8f8f2;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+      font-size: 14px;
+    }
+
+    code {
+      font-family: monospace;
+    }
+
+    footer {
+      text-align: center;
+      padding: 15px;
+      font-size: 14px;
+      background: #0d6efd;
+      color: white;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+  <header>Igati API Documentation</header>
+
+  <div class="container">
+
+    <!-- REGISTER -->
+    <div class="endpoint">
+      <h2>Register User</h2>
+      <div class="method">POST</div>
+      <div class="url">/register/</div>
+      <div class="section-title">Request Body (JSON)</div>
+      <pre>{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john@example.com",
+  "password": "secret123",
+  "phoneNumber": "0712345678"
+}</pre>
+
+      <div class="section-title">Response (201 Created)</div>
+      <pre>{
+  "message": "Successfully registered"
+}</pre>
+
+      <div class="section-title">Error (400 Bad Request)</div>
+      <pre>{
+  "message": "Email already exists"
+}</pre>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="endpoint">
+      <h2>Login User</h2>
+      <div class="method">POST</div>
+      <div class="url">/login/</div>
+      <div class="section-title">Request Body (JSON)</div>
+      <pre>{
+  "email": "john@example.com",
+  "password": "secret123"
+}</pre>
+      <div class="section-title">Response (200 OK)</div>
+      <pre>{
+  "message": "Successfully logged in",
+  "token": "eyJhbGciOi..."
+}</pre>
+      <div class="section-title">Error (401 Unauthorized)</div>
+      <pre>{
+  "message": "Invalid credentials"
+}</pre>
+    </div>
+
+    <!-- ADD PRODUCT -->
+    <div class="endpoint">
+      <h2>Add Product</h2>
+      <div class="method">POST (Multipart)</div>
+      <div class="url">/add_product/</div>
+      <div class="section-title">Form Data</div>
+      <pre>name, description, category, price, stock, image (file)</pre>
+      <div class="section-title">Response (201 Created)</div>
+      <pre>{
+  "message": "Product added successfully",
+  "product_id": 12
+}</pre>
+    </div>
+
+    <!-- PRODUCT LIST -->
+    <div class="endpoint">
+      <h2>Get All Products</h2>
+      <div class="method">GET</div>
+      <div class="url">/product_list/</div>
+      <div class="section-title">Response (200 OK)</div>
+      <pre>{
+  "success": true,
+  "products": [
+    {
+      "id": 1,
+      "name": "Laptop",
+      "category": "Electronics",
+      "price": 85000,
+      "stock": 3,
+      "image": "https://..."
+    }
+  ]
+}</pre>
+    </div>
+
+    <!-- CART APIS -->
+    <div class="endpoint">
+      <h2>Add to Cart</h2>
+      <div class="method">POST</div>
+      <div class="url">/add_to_cart/</div>
+      <div class="section-title">Request Body (JSON)</div>
+      <pre>{
+  "product_id": 1,
+  "user_id": 10
+}</pre>
+      <div class="section-title">Response</div>
+      <pre>{
+  "success": true,
+  "message": "Product added to cart",
+  "quantity": 2
+}</pre>
+    </div>
+
+    <div class="endpoint">
+      <h2>Remove from Cart</h2>
+      <div class="method">POST</div>
+      <div class="url">/remove_from_cart/</div>
+      <div class="section-title">Request Body</div>
+      <pre>{
+  "product_id": 1,
+  "user_id": 10
+}</pre>
+      <div class="section-title">Response</div>
+      <pre>{
+  "success": true,
+  "message": "Product removed from cart"
+}</pre>
+    </div>
+
+    <div class="endpoint">
+      <h2>View Cart</h2>
+      <div class="method">POST</div>
+      <div class="url">/cart_view/</div>
+      <div class="section-title">Request</div>
+      <pre>{
+  "user_id": 10
+}</pre>
+      <div class="section-title">Response</div>
+      <pre>{
+  "success": true,
+  "cart_items": [
+    {
+      "product_name": "Laptop",
+      "quantity": 1,
+      "subtotal": 85000
+    }
+  ],
+  "total": 85000
+}</pre>
+    </div>
+
+    <!-- PROJECTS -->
+    <div class="endpoint">
+      <h2>Get Projects</h2>
+      <div class="method">GET</div>
+      <div class="url">/get_projects/</div>
+      <div class="section-title">Response</div>
+      <pre>{
+  "success": true,
+  "projects": [
+    {
+      "id": 1,
+      "owner_name": "John Doe",
+      "title": "E-Commerce Site",
+      "description": "A fullstack Django project",
+      "image": "https://...",
+      "created_at": "2025-10-20T12:00:00Z"
+    }
+  ]
+}</pre>
+    </div>
+
+    <div class="endpoint">
+      <h2>Add Project</h2>
+      <div class="method">POST (Multipart)</div>
+      <div class="url">/add_project/</div>
+      <div class="section-title">Form Data</div>
+      <pre>user_id, title, description, image (file)</pre>
+      <div class="section-title">Response</div>
+      <pre>{
+  "success": true,
+  "project": {
+    "id": 4,
+    "title": "Portfolio",
+    "description": "Personal portfolio site"
+  }
+}</pre>
+    </div>
+
+    <!-- BULK ORDER -->
+    <div class="endpoint">
+      <h2>Create Bulk Order</h2>
+      <div class="method">POST</div>
+      <div class="url">/create_bulk_order/</div>
+      <div class="section-title">Request</div>
+      <pre>{
+  "user_id": 10,
+  "products": [
+    {
+      "product_id": 1,
+      "product_name": "Laptop",
+      "quantity": 1,
+      "price": 85000
+    }
+  ]
+}</pre>
+      <div class="section-title">Response</div>
+      <pre>{
+  "message": "All orders created successfully",
+  "order_ids": [21, 22]
+}</pre>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="endpoint">
+      <h2>Get User Notifications</h2>
+      <div class="method">GET</div>
+      <div class="url">/get_user_notifications/&lt;user_id&gt;/</div>
+      <div class="section-title">Response</div>
+      <pre>[
+  {
+    "id": 1,
+    "message": "Order for Laptop placed successfully",
+    "is_read": false,
+    "created_at": "2025-10-21T10:00:00Z"
+  }
+]</pre>
+    </div>
+
+  </div>
+
+  <footer>© 2025 Igati API Docs | Powered by Django REST Framework</footer>
+</body>
+</html>
